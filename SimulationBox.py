@@ -1,4 +1,5 @@
-
+import numpy.random as rand
+import numpy as np
 
 class SimulationBox:
 
@@ -10,8 +11,9 @@ class SimulationBox:
         self.molecularWeight = 39.948 # Molar mass of argon, g / mol
         self.boltzman = 1.38064852 * 10**(-23) # Boltzman constant, (m^2 kg) / (s^2 K)
         self.avogadrosNumber = 6.022 * 10**(23) # Avogadros number, atoms per mole
-        self.timeStep = 1 # fs, Time step of simulation in femto second
+        self.timeStep = 1*10**(-15) # s, Time step of simulation in femto second
         self.atomPositions = [] # List to hold atoms positions. Each element is a tuple of size 3. One value for each coordinate
+        self.atomPreviousPositions = [] # Used in integrating equations of motion. 
         self.atomVelocities = None # List to hold atom velocities. Each element is a tuple of size 3. One Value for each coordinate
         self.atomForces = [] # List to hold atom forces at current time step
 
@@ -21,6 +23,17 @@ class SimulationBox:
             # Choose random x, y, and z coordinates for each atom
             randomCoordinates = rand.random_integers(-70, 70, 3)
             self.atomPositions.append(randomCoordinates)
+    
+    # Initialize atom previous positions
+    def initializePreviousPositions(self):
+        # previous position = position - vel * dT
+        for i in range(0, self.numAtoms):
+            x, y, z = self.atomPositions[i]
+            vx, vy, vz = self.atomVelocities[i]
+            xm = x - vx * self.timeStep 
+            ym = y - vy * self.timeStep
+            zm = z - vz * self.timeStep
+            self.atomPreviousPositions[i] = (xm, ym, zm) 
 
     # Initialize velocities
     #   Random velocities based on normal distribution, mean = 0 and variance = 1
@@ -29,7 +42,7 @@ class SimulationBox:
         self.atomVelocities = rand.randn(self.numAtoms, 3) # Generate random velocities from normal distrbution, mean 0 variance 1
         initialTemp = self.instantaneousTemperature()
         scailingFactor = (self.temperature / initialTemp)**(1/2) # Calculate scailing factor
-        self.atomVelocities *= scailingFactor # Scale atom velocities
+        self.atomVelocities *= scailingFactor # Scale atom velocitie
 
     # Calculates instantaneous temperature
     def instantaneousTemperature(self):
@@ -161,6 +174,7 @@ class SimulationBox:
     def main(self):
         self.initializePositions()
         self.initializeVelocities()
+        self.initializePreviousPositions()
         self.dumpPositions()
         self.pseudoSimulation()
         self.velocityCenterOfMass()
