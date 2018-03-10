@@ -1,11 +1,10 @@
-import numpy as np
-import numpy.random as rand
+
 
 class SimulationBox:
 
     # Initialize simulation box specifications
     def __init__(self):
-        self.size = 1000 # Angstrom, Volume = size^3
+        self.size = 250 # Angstrom, Volume = size^3
         self.numAtoms = 500 # Number of Argon atoms
         self.temperature = 273.15 # Tempeature, T in Kelvin K
         self.molecularWeight = 39.948 # Molar mass of argon, g / mol
@@ -20,7 +19,7 @@ class SimulationBox:
     def initializePositions(self):
         for i in range(0, self.numAtoms):
             # Choose random x, y, and z coordinates for each atom
-            randomCoordinates = rand.random_integers(-500, 500, 3)
+            randomCoordinates = rand.random_integers(-70, 70, 3)
             self.atomPositions.append(randomCoordinates)
 
     # Initialize velocities
@@ -55,7 +54,7 @@ class SimulationBox:
 
     # Dump coordinates to file
     def dumpPositions(self):
-        # Iterate through atom positions at write to file
+        # Iterate through atom positions and write to file
         file = open("positions.xyz", "w+")
         file.write(str(self.numAtoms) + "\n")
         file.write("\n")
@@ -69,24 +68,46 @@ class SimulationBox:
             file.write(line)
         file.close()
 
-    # Force calculation
-    def forceCalculation(self):
+    # Dump forces to file
+    def dumpForces(self):
+        # Iterate through atoms positions and 
+        file = open("forces.txt", "w+")
+        file.write("atom Fx Fy Fz\n")
         for i in range(0, self.numAtoms):
+            currentForces = self.atomForces[i]
+            currFx = currentForces[0]
+            currFy = currentForces[1]
+            currFz = currentForces[2]
+            line = " " + str(i) + " " + str(currFx) + " " + str(currFy) + " " + str(currFz) + '\n'
+            file.write(line)
+        file.close()
+
+    # Force calculation - calculate the forces on each atom at the current time step
+    # andadds forces to self.atomForces 
+    def forceCalculation(self):
+        for i in range(0, self.numAtoms): # For each atom..
             fx = fy = fz = 0.0
-            for j in range(0, self.numAtoms):
+            for j in range(0, self.numAtoms): # Calculate forces from all other atoms within cutoff
                 if i != j: # Calculate force in each dirrection between i and j
-                    if self.inRange(self.atomPositions[i], self.atomPositions[j]):
+                    if True: 
+                    #if self.inRange(self.atomPositions[i], self.atomPositions[j]):
                         forceCompoents = self.calculateForce(self.atomPositions[i], self.atomPositions[j])
                         fx += forceCompoents[0]
                         fy += forceCompoents[1]
                         fz += forceCompoents[2]
                 else: # Do nothing..
                     pass
-        return (0,0,0)
+            self.atomForces.append((fx, fy, fz)) 
 
     # Lennard-Jones Potential between two atoms
     def lennardJones(self, atomPosition1, atomPosition2):
         return 0
+
+    # Integrate equation of motion
+    def integrateEquationsOfMotion(self):
+        # Calculate new position, according to current forces and previous position
+        for atom in range(0, self.numAtoms):
+           print("Hello World..")
 
     # Force between two atoms given by derivative of Lennard-Jones
     def calculateForce(self, atomPosition1, atomPosition2):
@@ -99,7 +120,7 @@ class SimulationBox:
         fz = 48.0 * z / r * (1/r**(13) - 1/(2*(r**(7))))
         return (fx, fy, fz)
 
-# Returns True if atoms are within the potential cut off Euclidean distance of each other,
+    # Returns True if atoms are within the potential cut off Euclidean distance of each other,
     #   False if not. Take cutt to be 10 Angstrom.
     def inRange(self, atomPosition1, atomPosition2):
         euclideanDistance = ((atomPosition1[0] - atomPosition2[0])**2 +
@@ -145,6 +166,8 @@ class SimulationBox:
         self.velocityCenterOfMass()
         self.instantaneousTemperature()
         self.initializeVelocities()
+        self.forceCalculation()
+        self.dumpForces()
 
 # Run
 print("Hello World from SimulationBox.py")
