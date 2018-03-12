@@ -5,23 +5,31 @@ class SimulationBox:
 
     # Initialize simulation box specifications
     def __init__(self):
-        self.size = 250 # Angstrom, Volume = size^3
-        self.numAtoms = 500 # Number of Argon atoms
-        self.temperature = 273.15 # Tempeature, T in Kelvin K
-        self.molecularWeight = 39.948 # Molar mass of argon, g / mol
+        self.size = 10.0 # Angstrom, Volume = size^3
+        self.numAtoms = 1000 # Number of Argon atoms
+        self.temperature = 1000 # Tempeature, T in Kelvin K
+        self.molecularWeight = 39.948 # Molar mass of Argon, g / mol
+        self.massPerAtom = 1 #np.float64(6.634e-26) # Kg/atom of Argon 
         self.boltzman = 1.38064852 * 10**(-23) # Boltzman constant, (m^2 kg) / (s^2 K)
         self.avogadrosNumber = 6.022 * 10**(23) # Avogadros number, atoms per mole
-        self.timeStep = 1*10**(-15) # s, Time step of simulation in femto second
+        self.timeStep = 0.01 #1*10**(-15) # s, Time step of simulation in femto second
         self.atomPositions = [] # List to hold atoms positions. Each element is a tuple of size 3. One value for each coordinate
         self.atomPreviousPositions = [] # Used in integrating equations of motion. 
         self.atomVelocities = None # List to hold atom velocities. Each element is a tuple of size 3. One Value for each coordinate
         self.atomForces = [] # List to hold atom forces at current time step
 
+    # Initialize routine - positions, previous positions, velocities, scale, etc..
+    def initializationRoutine(self):
+        print("Hello World")
+        self.initializePositions()
+        self.initializeVelocities()
+        self.initializePreviousPositions()
+
     # Initialize atom positions
     def initializePositions(self):
         for i in range(0, self.numAtoms):
             # Choose random x, y, and z coordinates for each atom
-            randomCoordinates = rand.random_integers(-70, 70, 3)
+            randomCoordinates = rand.random_integers(0.0, self.size, 3)
             self.atomPositions.append(randomCoordinates)
     
     # Initialize atom previous positions
@@ -33,7 +41,7 @@ class SimulationBox:
             xm = x - vx * self.timeStep 
             ym = y - vy * self.timeStep
             zm = z - vz * self.timeStep
-            self.atomPreviousPositions[i] = (xm, ym, zm) 
+            self.atomPreviousPositions.append((xm, ym, zm)) 
 
     # Initialize velocities
     #   Random velocities based on normal distribution, mean = 0 and variance = 1
@@ -68,7 +76,7 @@ class SimulationBox:
     # Dump coordinates to file
     def dumpPositions(self):
         # Iterate through atom positions and write to file
-        file = open("positions.xyz", "w+")
+        file = open("positions.xyz", "a")
         file.write(str(self.numAtoms) + "\n")
         file.write("\n")
         # file.write("atom x y z\n")
@@ -119,8 +127,15 @@ class SimulationBox:
     # Integrate equation of motion
     def integrateEquationsOfMotion(self):
         # Calculate new position, according to current forces and previous position
-        for atom in range(0, self.numAtoms):
-           print("Hello World..")
+        for i in range(0, self.numAtoms):
+           x, y, z = self.atomPositions[i]
+           xm, ym, zm = self.atomPreviousPositions[i]
+           fx, fy, fz = self.atomForces[i]
+           nx = 2 * x - xm + fx * self.timeStep**2 / self.massPerAtom 
+           ny = 2 * y - ym + fy * self.timeStep**2 / self.massPerAtom
+           nz = 2 * z - zm + fz * self.timeStep**2 / self.massPerAtom
+           self.atomPreviousPositions[i] = (x % (self.size/2), y % (self.size/2), z % (self.size/2))
+           self.atomPositions[i] = (nx % (self.size/2), ny % (self.size/2), nz % (self.size/2))
 
     # Force between two atoms given by derivative of Lennard-Jones
     def calculateForce(self, atomPosition1, atomPosition2):
@@ -149,6 +164,23 @@ class SimulationBox:
         for i in range(0, 500):
             self.pseudoSimulate()
 
+    # Simulation 
+    def simulation(self):
+        for i in range(0, 10):
+            self.simulate()
+
+    # At each time step update forces, atom previous position and current position
+    def simulate(self):
+        for i in range(0, self.numAtoms):
+            self.forceCalculation()
+            self.integrateEquationsOfMotion()
+            self.dumpPositions()
+
+        # Call forces; calculate forces
+        # Call integrate; integrate equations of motion
+        # increment time
+
+
     # Randomly adds -1, 0, or 1 to each atom's coordinates
     def pseudoSimulate(self):
         # Open the positions.xyz
@@ -172,15 +204,17 @@ class SimulationBox:
 
     # Used for testing
     def main(self):
-        self.initializePositions()
-        self.initializeVelocities()
-        self.initializePreviousPositions()
-        self.dumpPositions()
-        self.pseudoSimulation()
-        self.velocityCenterOfMass()
-        self.instantaneousTemperature()
-        self.initializeVelocities()
-        self.forceCalculation()
+        self.initializationRoutine()
+        self.simulation()
+        # self.initializePositions()
+        # self.initializeVelocities()
+        #self.initializePreviousPositions()
+        # self.dumpPositions()
+        # self.pseudoSimulation()
+        # self.velocityCenterOfMass()
+        # self.instantaneousTemperature()
+        # self.initializeVelocities()
+        # self.forceCalculation()
         self.dumpForces()
 
 # Run
